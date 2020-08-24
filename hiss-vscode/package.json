@@ -10,14 +10,22 @@
 		"Other"
 	],
 	"activationEvents": [
-		"onCommand:hiss-vscode.helloWorld"
+		"onStartupFinished"
 	],
 	"main": "./extension.js",
 	"contributes": {
 		"commands": [
 			{
-				"command": "hiss-vscode.helloWorld",
-				"title": "Hello World"
+				"command": "hiss-vscode.eval",
+				"title": "Hiss: Display the value of a Hiss expression"
+			},
+			{
+				"command": "hiss-vscode.insert",
+				"title": "Hiss: Insert the value of a Hiss expression"
+			},
+			{
+				"command": "hiss-vscode.restart",
+				"title": "Hiss: Restart the interpreter"
 			}
 		]
 	},
@@ -36,5 +44,6 @@
 		"mocha": "^8.0.1",
 		"typescript": "^3.8.3",
 		"vscode-test": "^1.4.0"
-	}
+	},
+	"publisher": "NQNStudios"
 }
