@@ -1894,50 +1894,30 @@ var hiss_CCInterp = $hx_exports["hiss"]["CCInterp"] = function(printFunction) {
 	this.importSpecialForm($bind(this,this.loop),"loop");
 	this.importSpecialForm($bind(this,this.or),"or");
 	this.importSpecialForm($bind(this,this.and),"and");
-	var _g7 = $bind(this,this.iterate);
-	var collect = true;
-	var bodyForm = true;
-	this.importSpecialForm(function(args,env,cc) {
-		_g7(collect,bodyForm,args,env,cc);
-	},"for");
-	var _g8 = $bind(this,this.iterate);
-	var collect1 = false;
-	var bodyForm1 = true;
-	this.importSpecialForm(function(args,env,cc) {
-		_g8(collect1,bodyForm1,args,env,cc);
-	},"do-for");
-	var _g9 = $bind(this,this.iterate);
-	var collect2 = true;
-	var bodyForm2 = false;
-	this.importSpecialForm(function(args,env,cc) {
-		_g9(collect2,bodyForm2,args,env,cc);
-	},"map");
-	var _g10 = $bind(this,this.iterate);
-	var collect3 = false;
-	var bodyForm3 = false;
-	this.importSpecialForm(function(args,env,cc) {
-		_g10(collect3,bodyForm3,args,env,cc);
-	},"do-map");
-	this.useBeginFunction($bind(this,this.trBegin));
-	var _g11 = $bind(this,this.useBeginFunction);
-	var bf = $bind(this,this.trBegin);
+	this.useBeginAndIterate($bind(this,this.trBegin),$bind(this,this.iterate));
+	var _g7 = $bind(this,this.useBeginAndIterate);
+	var beginFunction = $bind(this,this.trBegin);
+	var iterateFunction = $bind(this,this.iterate);
 	this.importFunction(function() {
-		_g11(bf);
+		_g7(beginFunction,iterateFunction);
 	},"enable-tail-recursion");
-	var _g12 = $bind(this,this.useBeginFunction);
-	var bf1 = $bind(this,this.trBegin);
+	var _g8 = $bind(this,this.useBeginAndIterate);
+	var beginFunction1 = $bind(this,this.trBegin);
+	var iterateFunction1 = $bind(this,this.iterate);
 	this.importFunction(function() {
-		_g12(bf1);
+		_g8(beginFunction1,iterateFunction1);
 	},"disable-continuations");
-	var _g13 = $bind(this,this.useBeginFunction);
-	var bf2 = $bind(this,this.begin);
+	var _g9 = $bind(this,this.useBeginAndIterate);
+	var beginFunction2 = $bind(this,this.begin);
+	var iterateFunction2 = $bind(this,this.iterateCC);
 	this.importFunction(function() {
-		_g13(bf2);
+		_g9(beginFunction2,iterateFunction2);
 	},"enable-continuations");
-	var _g14 = $bind(this,this.useBeginFunction);
-	var bf3 = $bind(this,this.begin);
+	var _g10 = $bind(this,this.useBeginAndIterate);
+	var beginFunction3 = $bind(this,this.begin);
+	var iterateFunction3 = $bind(this,this.iterateCC);
 	this.importFunction(function() {
-		_g14(bf3);
+		_g10(beginFunction3,iterateFunction3);
 	},"disable-tail-recursion");
 	this.importClass(Type,"Type");
 	this.importCCFunction($bind(this,this.getProperty),"get-property");
@@ -2151,8 +2131,32 @@ hiss_CCInterp.prototype = {
 		},name);
 		hiss_HissTools.put(this.globals,name,tmp);
 	}
-	,useBeginFunction: function(bf) {
-		hiss_HissTools.put(this.globals,"begin",hiss_HValue.SpecialForm(bf,"begin"));
+	,useBeginAndIterate: function(beginFunction,iterateFunction) {
+		hiss_HissTools.put(this.globals,"begin",hiss_HValue.SpecialForm(beginFunction,"begin"));
+		var _g = iterateFunction;
+		var collect = true;
+		var bodyForm = true;
+		this.importSpecialForm(function(args,env,cc) {
+			_g(collect,bodyForm,args,env,cc);
+		},"for");
+		var _g1 = iterateFunction;
+		var collect1 = false;
+		var bodyForm1 = true;
+		this.importSpecialForm(function(args,env,cc) {
+			_g1(collect1,bodyForm1,args,env,cc);
+		},"do-for");
+		var _g2 = iterateFunction;
+		var collect2 = true;
+		var bodyForm2 = false;
+		this.importSpecialForm(function(args,env,cc) {
+			_g2(collect2,bodyForm2,args,env,cc);
+		},"map");
+		var _g3 = iterateFunction;
+		var collect3 = false;
+		var bodyForm3 = false;
+		this.importSpecialForm(function(args,env,cc) {
+			_g3(collect3,bodyForm3,args,env,cc);
+		},"do-map");
 	}
 	,repl: function(useConsoleReader) {
 		if(useConsoleReader == null) {
@@ -2169,7 +2173,7 @@ hiss_CCInterp.prototype = {
 			throw haxe_Exception.thrown(hiss_HSignal.Quit);
 		},"quit");
 		var locals = hiss_HValue.List([hiss_HValue.Dict(new haxe_ds_StringMap())]);
-		hiss_HaxeTools.println("Hiss version " + "generators-360 (target: js)");
+		hiss_HaxeTools.println("Hiss version " + "generators-361* (target: js)");
 		hiss_HaxeTools.println("Type (quit) to quit the REPL");
 		while(true) {
 			hiss_HaxeTools.print(">>> ");
@@ -2344,35 +2348,59 @@ hiss_CCInterp.prototype = {
 		}
 		cc(callable);
 	}
-	,iterate: function(collect,bodyForm,args,env,cc) {
+	,iterable: function(bodyForm,args,env,cc) {
+		this.internalEval(bodyForm ? hiss_HissTools.second(args) : hiss_HissTools.first(args),env,cc);
+	}
+	,performIteration: function(bodyForm,args,env,cc,performFunction) {
 		var _gthis = this;
+		if(bodyForm) {
+			var body = hiss_HValue.List(hiss_HissTools.toList(args).slice(2));
+			performFunction(function(innerArgs,innerEnv,innerCC) {
+				var bodyEnv = hiss_HissTools.extend(env,hiss_HissTools.destructuringBind(hiss_HissTools.first(args),hiss_HissTools.first(innerArgs)));
+				_gthis.internalEval(hiss_HissTools.cons(hiss_HValue.Symbol("begin"),body),bodyEnv,innerCC);
+			},env,cc);
+		} else {
+			this.internalEval(hiss_HissTools.second(args),env,function(fun) {
+				performFunction(hiss_HissTools.toHFunction(fun),hiss_HValue.List([hiss_HValue.Dict(new haxe_ds_StringMap())]),cc);
+			});
+		}
+	}
+	,iterate: function(collect,bodyForm,args,env,cc) {
 		var it = hiss_HValue.Nil;
-		this.internalEval(bodyForm ? hiss_HissTools.second(args) : hiss_HissTools.first(args),env,function(_iterable) {
+		this.iterable(bodyForm,args,env,function(_iterable) {
 			it = _iterable;
 		});
 		var iterable = hiss_HissTools.value(it,null,true);
-		var operation = null;
-		if(bodyForm) {
-			var body = hiss_HValue.List(hiss_HissTools.toList(args).slice(2));
-			operation = function(innerArgs,innerEnv,cc) {
-				var bodyEnv = hiss_HissTools.extend(env,hiss_HissTools.destructuringBind(hiss_HissTools.first(args),hiss_HissTools.first(innerArgs)));
-				_gthis.internalEval(hiss_HissTools.cons(hiss_HValue.Symbol("begin"),body),bodyEnv,cc);
+		this.performIteration(bodyForm,args,env,cc,function(operation,innerEnv,outerCC) {
+			var results = [];
+			var iterationCC = collect ? function(result) {
+				return results.push(result);
+			} : hiss_CCInterp.noCC;
+			var value = $getIterator(iterable);
+			while(value.hasNext()) operation(hiss_HValue.List([value.next()]),innerEnv,iterationCC);
+			outerCC(hiss_HValue.List(results));
+		});
+	}
+	,iterateCC: function(collect,bodyForm,args,env,cc) {
+		var _gthis = this;
+		this.iterable(bodyForm,args,env,function(it) {
+			var iterator = $getIterator(hiss_HissTools.value(it,null,true));
+			var results = [];
+			var asynchronousIteration = null;
+			asynchronousIteration = function(operation,innerEnv,outerCC) {
+				if(!iterator.hasNext()) {
+					outerCC(hiss_HValue.List(results));
+				} else {
+					operation(hiss_HValue.List([iterator.next()]),innerEnv,function(value) {
+						if(collect) {
+							results.push(value);
+						}
+						asynchronousIteration(operation,innerEnv,outerCC);
+					});
+				}
 			};
-		} else {
-			this.internalEval(hiss_HissTools.second(args),env,function(fun) {
-				operation = hiss_HissTools.toHFunction(fun);
-			});
-		}
-		var results = [];
-		var iterationCC = collect ? function(result) {
-			return results.push(result);
-		} : hiss_CCInterp.noCC;
-		var value = $getIterator(iterable);
-		while(value.hasNext()) {
-			var value1 = value.next();
-			operation(hiss_HValue.List([value1]),bodyForm ? env : hiss_HValue.List([hiss_HValue.Dict(new haxe_ds_StringMap())]),iterationCC);
-		}
-		cc(hiss_HValue.List(results));
+			_gthis.performIteration(bodyForm,args,env,cc,asynchronousIteration);
+		});
 	}
 	,loop: function(args,env,cc) {
 		var _gthis = this;
@@ -2431,7 +2459,7 @@ hiss_CCInterp.prototype = {
 		var ccId = hiss_CCInterp.ccNum++;
 		var ccHFunction = hiss_HValue.Function(function(innerArgs,innerEnv,innerCC) {
 			var arg = !hiss_HissTools.truthy(innerArgs) ? hiss_HValue.Nil : hiss_HissTools.first(innerArgs);
-			haxe_Log.trace("calling cc#" + ccId + " with " + hiss_HissTools.toPrint(arg),{ fileName : "src/hiss/CCInterp.hx", lineNumber : 685, className : "hiss.CCInterp", methodName : "callCC"});
+			haxe_Log.trace("calling cc#" + ccId + " with " + hiss_HissTools.toPrint(arg),{ fileName : "src/hiss/CCInterp.hx", lineNumber : 717, className : "hiss.CCInterp", methodName : "callCC"});
 			cc(arg);
 		},"cc");
 		this.funcall(true,hiss_HValue.List([hiss_HissTools.first(args),ccHFunction]),env,cc);
@@ -2547,6 +2575,12 @@ hiss_CCInterp.prototype = {
 			value = _value;
 		});
 		return value;
+	}
+	,evalCC: function(arg,cc,env) {
+		if(env == null) {
+			env = hiss_HValue.List([hiss_HValue.Dict(new haxe_ds_StringMap())]);
+		}
+		this.internalEval(arg,env,cc);
 	}
 	,internalEval: function(exp,env,cc) {
 		var _gthis = this;
@@ -3450,7 +3484,7 @@ hiss_HissReader.prototype = {
 var hiss_HissTools = $hx_exports["hiss"]["HissTools"] = function() { };
 hiss_HissTools.__name__ = "hiss.HissTools";
 hiss_HissTools.version = function() {
-	return hiss_HValue.String("generators-360 (target: js)");
+	return hiss_HValue.String("generators-361* (target: js)");
 };
 hiss_HissTools.homeDir = function() {
 	var s = Sys.systemName() == "Windows" ? "UserProfile" : "HOME";

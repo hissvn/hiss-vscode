@@ -59,9 +59,7 @@ function activate(context) {
 	});
 
 	// Restart the interpreter to clear state
-	let restart = vscode.commands.registerCommand('hiss-vscode.restart', function () {
-		freshInterpreter();
-	});
+	let restart = vscode.commands.registerCommand('hiss-vscode.restart', freshInterpreter);
 
 	context.subscriptions.push(eval);
 	context.subscriptions.push(insert);
