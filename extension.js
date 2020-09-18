@@ -51,6 +51,13 @@ function freshInterpreter() {
 		cc(arg);
 	}, "insert");
 
+	var config = vscode.workspace.getConfiguration('hiss-vscode');
+
+	var launchScript = config.get("launchScript");
+	if (launchScript != null) {
+		interp.load(launchScript);
+	}
+
 	runHiss("(enable-continuations)");
 }
 

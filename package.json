@@ -39,7 +39,17 @@
 				"key": "ctrl+i",
 				"mac": "cmd+i"
 			}
-		]
+		],
+		"configuration": {
+			"title": "Hiss",
+			"properties": {
+				"hiss-vscode.launchScript": {
+					"type": ["string", "null"],
+					"default": null,
+					"description": "Path of a Hiss script to run on launch."
+				}
+			}
+		}
 	},
 	"scripts": {
 		"lint": "eslint .",
