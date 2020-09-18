@@ -8,6 +8,7 @@ var interp = null;
 
 function freshInterpreter() {
 	interp = new hiss.CCInterp(function (v) {
+		// This replaces the print function:
 		vscode.window.showInformationMessage(hiss.HissTools.toPrint(hiss.HissTools.toHValue(v))); return v; 
 	});
 
@@ -19,6 +20,21 @@ function freshInterpreter() {
 			cc("");
 		});
 	}, "read-line");
+
+	interp.importCCFunction(function(args, env, cc) {
+		var prompt = "";
+		if (hiss.HissTools.truthy(args)) {
+			prompt = hiss.HissTools.toHaxeString(hiss.HissTools.first(args));
+		}
+		vscode.window.showInputBox({
+			"prompt": prompt
+		}).then(function(input) {
+			cc(input);
+		}, function (err) {
+			vscode.window.showInformationMessage("input-string failed with " + err.toString());
+			cc("");
+		});
+	}, "input-string");
 
 	interp.importCCFunction(function(args, env, cc) {
 		var arg = hiss.HissTools.first(args);
@@ -50,12 +66,12 @@ function activate(context) {
 
 	// Display the value of a Hiss expression
 	let eval = vscode.commands.registerCommand('hiss-vscode.eval', function () {
-		runHiss("(print (input-expression))");
+		runHiss("(print (input-expression \"Expression to evaluate:\"))");
 	});
 
 	// Insert the value of a Hiss expression
 	let insert = vscode.commands.registerCommand('hiss-vscode.insert', function () {		
-		runHiss("(insert (input-expression))");
+		runHiss("(insert (input-expression \"Expression to insert:\"))");
 	});
 
 	// Restart the interpreter to clear state
