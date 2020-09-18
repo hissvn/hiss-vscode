@@ -45,5 +45,10 @@
 		"typescript": "^3.8.3",
 		"vscode-test": "^1.4.0"
 	},
-	"publisher": "NQNStudios"
+	"publisher": "NQNStudios",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/hissvn/hiss-vscode.git"
+	},
+	"homepage": "https://github.com/hissvn/hiss-vscode/blob/master/README.md"
 }
