@@ -27,6 +27,18 @@
 				"command": "hiss-vscode.restart",
 				"title": "Hiss: Restart the interpreter"
 			}
+		],
+		"keybindings": [
+			{
+				"command": "hiss-vscode.eval",
+				"key": "ctrl+h",
+				"mac": "cmd+h"
+			},
+			{
+				"command": "hiss-vscode.insert",
+				"key": "ctrl+i",
+				"mac": "cmd+i"
+			}
 		]
 	},
 	"scripts": {
