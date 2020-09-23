@@ -90,8 +90,9 @@ function freshInterpreter() {
 }
 
 /**
- * 
+ * Run a Hiss expression
  * @param {String} code Hiss code to evaluate
+ * @returns a Promise that resolves after the expression is evaluated
  */
 function runHissExp(code) {
 	return new Promise ( (resolve, reject) => {
