@@ -3,6 +3,10 @@
 const vscode = require('vscode');
 
 const hiss = require('./hiss-node.js').hiss;
+const HT = hiss.HissTools;
+const hval = hiss.HissTools.toHValue;
+const string = hiss.HissTools.toHaxeString;
+const first = hiss.HissTools.first;
 
 var interp = null;
 
@@ -10,32 +14,30 @@ function freshInterpreter() {
 	interp = new hiss.CCInterp(
 		// (print) via message box
 		function (v) {
-			vscode.window.showInformationMessage(hiss.HissTools.toPrint(hiss.HissTools.toHValue(v))); return v; 
+			vscode.window.showInformationMessage(HT.toPrint(hval(v))); return v;
 		});
 
 	// (read-line) via input box
-	interp.importCCFunction(function(args, env, cc) {
+	interp.importCCFunction(function(_, _, cc) {
 		vscode.window.showInputBox().then(function(input) {
-			cc(input);
+			cc(hval(input));
 		}, function (err) {
 			vscode.window.showInformationMessage("read-line failed with " + err.toString());
-			cc("");
 		});
 	}, "read-line");
 
 	// (input-string [prompt]) via input box
-	interp.importCCFunction(function(args, env, cc) {
+	interp.importCCFunction(function(args, _, cc) {
 		var prompt = "";
 		if (hiss.HissTools.truthy(args)) {
-			prompt = hiss.HissTools.toHaxeString(hiss.HissTools.first(args));
+			prompt = string(hiss.HissTools.first(args));
 		}
 		vscode.window.showInputBox({
 			"prompt": prompt
 		}).then(function(input) {
-			cc(input);
+			cc(hval(input));
 		}, function (err) {
 			vscode.window.showInformationMessage("input-string failed with " + err.toString());
-			cc("");
 		});
 	}, "input-string");
 
@@ -46,12 +48,12 @@ function freshInterpreter() {
 		if (vscode.window.activeTextEditor) {
 			vscode.window.activeTextEditor.edit(function(edit) {
 				edit.replace(vscode.window.activeTextEditor.selection, toInsert);
+				cc(hval(arg));
 			});
 		} else {
 			vscode.window.showInformationMessage("You need to select an editor before inserting.");
 		}
 
-		cc(arg);
 	}, "insert");
 
 	// Load the user's launch script
