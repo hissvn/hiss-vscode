@@ -76,6 +76,14 @@ function freshInterpreter() {
 			});
 		}, "vscode-command");
 
+		// The rest of the API is defined in api.hiss using the module object
+		interp.importVar(vscode, "vscode");
+
+		interp.load(__dirname + "/api.hiss");
+
+		
+
+
 		// Load the user's launch script
 		var config = vscode.workspace.getConfiguration('hiss-vscode');
 

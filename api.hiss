@@ -1,0 +1,24 @@
+/**
+* TextEditor
+*/
+
+(defvar window (get-property vscode "window"))
+
+(defun active-editor ()
+    (get-property window "activeTextEditor"))
+
+/**
+* TextDocument
+*/
+
+(defun document (&optional editor)
+    (get-property (or editor (active-editor)) "document"))
+
+(defun file-name (&optional doc)
+    (get-property (or doc (document)) "fileName"))
+		
+(defun is-dirty (&optional doc)
+    (get-property (or doc (document)) "isDirty"))
+
+(defun line-count (&optional doc)
+    (get-property (or doc (document)) "lineCount"))
