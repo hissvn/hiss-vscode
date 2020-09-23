@@ -81,9 +81,6 @@ function freshInterpreter() {
 
 		interp.load(__dirname + "/api.hiss");
 
-		
-
-
 		// Load the user's launch script
 		var config = vscode.workspace.getConfiguration('hiss-vscode');
 
@@ -94,7 +91,9 @@ function freshInterpreter() {
 
 		// Run hiss with continuations enabled to handle async
 		resolve(runHissExp("(enable-continuations)"));
-	});
+	}).then(() => {
+		infoMessage("Hiss-vscode is ready.");
+	});;
 }
 
 /**
@@ -116,6 +115,7 @@ function runHissExp(code) {
 function activate(context) {
 	// Display the value of a Hiss expression
 	let eval = commands.registerCommand('hiss-vscode.eval', () => {
+		// TODO if text is selected, evaluate it (prompting for undefined values)
 		return runHissExp("(print (input-expression \"Expression to evaluate:\"))");
 	});
 
@@ -131,9 +131,7 @@ function activate(context) {
 	context.subscriptions.push(insert);
 	context.subscriptions.push(restart);
 
-	freshInterpreter().then(() => {
-		infoMessage("Hiss-vscode is ready.");
-	});
+	freshInterpreter();
 }
 exports.activate = activate;
 
