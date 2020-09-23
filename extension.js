@@ -7,11 +7,13 @@ const hiss = require('./hiss-node.js').hiss;
 var interp = null;
 
 function freshInterpreter() {
-	interp = new hiss.CCInterp(function (v) {
-		// This replaces the print function:
-		vscode.window.showInformationMessage(hiss.HissTools.toPrint(hiss.HissTools.toHValue(v))); return v; 
-	});
+	interp = new hiss.CCInterp(
+		// (print) via message box
+		function (v) {
+			vscode.window.showInformationMessage(hiss.HissTools.toPrint(hiss.HissTools.toHValue(v))); return v; 
+		});
 
+	// (read-line) via input box
 	interp.importCCFunction(function(args, env, cc) {
 		vscode.window.showInputBox().then(function(input) {
 			cc(input);
@@ -21,6 +23,7 @@ function freshInterpreter() {
 		});
 	}, "read-line");
 
+	// (input-string [prompt]) via input box
 	interp.importCCFunction(function(args, env, cc) {
 		var prompt = "";
 		if (hiss.HissTools.truthy(args)) {
@@ -36,10 +39,10 @@ function freshInterpreter() {
 		});
 	}, "input-string");
 
+	// (insert [expression])
 	interp.importCCFunction(function(args, env, cc) {
 		var arg = hiss.HissTools.first(args);
 		var toInsert = hiss.HissTools.toMessage(arg);
-		//console.log(toInsert);
 		if (vscode.window.activeTextEditor) {
 			vscode.window.activeTextEditor.edit(function(edit) {
 				edit.replace(vscode.window.activeTextEditor.selection, toInsert);
@@ -51,6 +54,7 @@ function freshInterpreter() {
 		cc(arg);
 	}, "insert");
 
+	// Load the user's launch script
 	var config = vscode.workspace.getConfiguration('hiss-vscode');
 
 	var launchScript = config.get("launchScript");
@@ -58,6 +62,7 @@ function freshInterpreter() {
 		interp.load(launchScript);
 	}
 
+	// Run hiss with continuations enabled to handle async
 	runHiss("(enable-continuations)");
 }
 
