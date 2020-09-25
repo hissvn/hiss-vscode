@@ -1,6 +1,9 @@
 /**
-* TextEditor
-*/
+ * General properties
+ */
+
+(defun start (object) (get-property object "start"))
+(defun end (object) (get-property object "end"))
 
 (defvar window (get-property vscode "window"))
 
@@ -8,11 +11,28 @@
     (get-property window "activeTextEditor"))
 
 /**
-* TextDocument
-*/
+ * Selection
+ */
+
+(defun selection->range (selection)
+    (make-range (start selection) (end selection)))
+
+/**
+ * TextEditor
+ */
+
+(defun selection (&optional editor)
+    (get-property (or editor (active-editor)) "selection"))
 
 (defun document (&optional editor)
     (get-property (or editor (active-editor)) "document"))
+
+(defun selected-text (&optional editor)
+    (get-text (selection->range (selection editor)) editor))
+
+/**
+ * TextDocument
+ */
 
 (defun file-name (&optional doc)
     (get-property (or doc (document)) "fileName"))
@@ -22,3 +42,17 @@
 
 (defun line-count (&optional doc)
     (get-property (or doc (document)) "lineCount"))
+
+// Argument order is flipped from a typical method structure because I imagine
+// querying the active doc will be the most typical
+(defun get-text (&optional range doc)
+    (call-haxe (or doc (document)) "getText" (list range)))
+
+'(let (exp-str 
+            (let (sel (selected-text))
+                (cond 
+                    ((empty? sel) (input-string \"Expression to evaluate:\"))
+                    (t sel))))
+    (print exp-str)
+    (when (not (empty? exp-str))
+        (eval (read exp-str))))

@@ -41,7 +41,10 @@ function freshInterpreter() {
 		interp.importCCFunction((args, env, cc) => {
 			var prompt = "";
 			if (HT.truthy(args)) {
-				prompt = string(first(args));
+				var firstArg = first(args);
+				if (HT.truthy(firstArg)) {
+					prompt = string(firstArg);
+				}
 			}
 			inputBox({
 				"prompt": prompt
@@ -76,6 +79,11 @@ function freshInterpreter() {
 			});
 		}, "vscode-command");
 
+		// (make-range [start] [end])
+		interp.importFunction((start, end) => {
+			return new vscode.Range(start, end);
+		}, "make-range");
+
 		// The rest of the API is defined in api.hiss using the module object
 		interp.importVar(vscode, "vscode");
 
@@ -86,7 +94,11 @@ function freshInterpreter() {
 
 		var launchScript = config.get("launchScript");
 		if (launchScript != null) {
-			interp.load(launchScript);
+			try {
+				interp.load(launchScript);
+			} catch (err) {
+				errorMessage("Failed to load user hiss-vscode configuration: " + err);
+			}
 		}
 
 		// Run hiss with continuations enabled to handle async
@@ -113,15 +125,23 @@ function runHissExp(code) {
  * @param {vscode.ExtensionContext} context
  */
 function activate(context) {
+	var sharedCode = "\
+		(let (exp-str \
+				(let (sel (selected-text))\
+					(if (empty? sel)\
+							(input-string \"Expression to {}:\")\
+						sel)))\
+			(when (not (empty? exp-str))\
+				({} (eval (read exp-str)))))";
+
 	// Display the value of a Hiss expression
 	let eval = commands.registerCommand('hiss-vscode.eval', () => {
-		// TODO if text is selected, evaluate it (prompting for undefined values)
-		return runHissExp("(print (input-expression \"Expression to evaluate:\"))");
+		return runHissExp(sharedCode.replace(/{}/g, "print"));
 	});
 
 	// Insert the value of a Hiss expression
 	let insert = commands.registerCommand('hiss-vscode.insert', () => {		
-		return runHissExp("(insert (input-expression \"Expression to insert:\"))");
+		return runHissExp(sharedCode.replace(/{}/g, "insert"));
 	});
 
 	// Restart the interpreter to clear state
