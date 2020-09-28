@@ -104,6 +104,28 @@ EReg.prototype = {
 };
 var HxOverrides = function() { };
 HxOverrides.__name__ = "HxOverrides";
+HxOverrides.strDate = function(s) {
+	switch(s.length) {
+	case 8:
+		var k = s.split(":");
+		var d = new Date();
+		d["setTime"](0);
+		d["setUTCHours"](k[0]);
+		d["setUTCMinutes"](k[1]);
+		d["setUTCSeconds"](k[2]);
+		return d;
+	case 10:
+		var k1 = s.split("-");
+		return new Date(k1[0],k1[1] - 1,k1[2],0,0,0);
+	case 19:
+		var k2 = s.split(" ");
+		var y = k2[0].split("-");
+		var t = k2[1].split(":");
+		return new Date(y[0],y[1] - 1,y[2],t[0],t[1],t[2]);
+	default:
+		throw new js__$Boot_HaxeError("Invalid date format : " + s);
+	}
+};
 HxOverrides.cca = function(s,index) {
 	var x = s.charCodeAt(index);
 	if(x != x) {
@@ -406,6 +428,16 @@ Std.parseInt = function(x) {
 		}
 	}
 	return null;
+};
+Std.parseFloat = function(x) {
+	return parseFloat(x);
+};
+Std.random = function(x) {
+	if(x <= 0) {
+		return 0;
+	} else {
+		return Math.floor(Math.random() * x);
+	}
 };
 var StringBuf = function() {
 	this.b = "";
@@ -2251,6 +2283,7 @@ var hiss_SetType = $hxEnums["hiss.SetType"] = { __ename__ : "hiss.SetType", __co
 };
 var hiss_CCInterp = $hx_exports["hiss"]["CCInterp"] = function(printFunction) {
 	this.scriptArgs = [];
+	this.currentEvalAllFunction = null;
 	this.currentBeginFunction = null;
 	this.debugClassImports = false;
 	this.errorHandler = null;
@@ -2304,30 +2337,34 @@ var hiss_CCInterp = $hx_exports["hiss"]["CCInterp"] = function(printFunction) {
 	this.importSpecialForm($bind(this,this.loop),"loop");
 	this.importSpecialForm($bind(this,this.or),"or");
 	this.importSpecialForm($bind(this,this.and),"and");
-	this.useBeginAndIterate($bind(this,this.trBegin),$bind(this,this.iterate));
-	var f8 = $bind(this,this.useBeginAndIterate);
+	this.useFunctions($bind(this,this.trBegin),$bind(this,this.trEvalAll),$bind(this,this.iterate));
+	var f8 = $bind(this,this.useFunctions);
 	var beginFunction = $bind(this,this.trBegin);
+	var evalAllFunction = $bind(this,this.trEvalAll);
 	var iterateFunction = $bind(this,this.iterate);
 	this.importFunction(function() {
-		return f8(beginFunction,iterateFunction);
+		return f8(beginFunction,evalAllFunction,iterateFunction);
 	},"enable-tail-recursion");
-	var f9 = $bind(this,this.useBeginAndIterate);
+	var f9 = $bind(this,this.useFunctions);
 	var beginFunction1 = $bind(this,this.trBegin);
+	var evalAllFunction1 = $bind(this,this.trEvalAll);
 	var iterateFunction1 = $bind(this,this.iterate);
 	this.importFunction(function() {
-		return f9(beginFunction1,iterateFunction1);
+		return f9(beginFunction1,evalAllFunction1,iterateFunction1);
 	},"disable-continuations");
-	var f10 = $bind(this,this.useBeginAndIterate);
+	var f10 = $bind(this,this.useFunctions);
 	var beginFunction2 = $bind(this,this.begin);
+	var evalAllFunction2 = $bind(this,this.evalAll);
 	var iterateFunction2 = $bind(this,this.iterateCC);
 	this.importFunction(function() {
-		return f10(beginFunction2,iterateFunction2);
+		return f10(beginFunction2,evalAllFunction2,iterateFunction2);
 	},"enable-continuations");
-	var f11 = $bind(this,this.useBeginAndIterate);
+	var f11 = $bind(this,this.useFunctions);
 	var beginFunction3 = $bind(this,this.begin);
+	var evalAllFunction3 = $bind(this,this.evalAll);
 	var iterateFunction3 = $bind(this,this.iterateCC);
 	this.importFunction(function() {
-		return f11(beginFunction3,iterateFunction3);
+		return f11(beginFunction3,evalAllFunction3,iterateFunction3);
 	},"disable-tail-recursion");
 	var interp = this;
 	this.importSpecialForm(function(args8,env8,cc8) {
@@ -2437,6 +2474,9 @@ var hiss_CCInterp = $hx_exports["hiss"]["CCInterp"] = function(printFunction) {
 	this.importCCFunction(function(args14,env14,cc14) {
 		hiss_VariadicFunctions.numCompare(hiss_Comparison.Equal,args14,env14,cc14);
 	},"=");
+	this.importFunction(Std.random,"random");
+	this.importFunction(Std.parseInt,"int");
+	this.importFunction(Std.parseFloat,"float");
 	this.importCCFunction(hiss_VariadicFunctions.append,"append");
 	this.importFunction(function(a1,b1) {
 		return a1 % b1;
@@ -2445,14 +2485,15 @@ var hiss_CCInterp = $hx_exports["hiss"]["CCInterp"] = function(printFunction) {
 	this.importFunction(hiss_HissTools.homeDir,"home-dir",null,[]);
 	this.importFunction(hiss_StaticFiles.getContent,"get-content",null,["file"]);
 	this.importClass(hiss_wrappers_HFile,"File");
-	this.importFunction(Sys.sleep,"sleep!",null,["duration"]);
+	this.importFunction(Sys.sleep,"sleep!",null,["seconds"]);
 	this.importClass(hiss_wrappers_HHttp,"Http");
 	var interp3 = this;
 	this.importCCFunction(function(args15,env15,cc15) {
 		hiss_wrappers_HHttp.request(interp3,args15,env15,cc15);
 	},"Http:request");
+	this.importClass(hiss_wrappers_HDate,"Date");
 	this.importFunction($bind(this,this.python),"python",null,[]);
-	hiss_StaticFiles._registerFileContent("stdlib2.hiss","(defmacro register-method (method name &optional call-on-reference keep-args-wrapped return-instance)\r\n    \"Register a method call as an unqualified global function. Unlike CCInterp.importClass, there won't be a Class: prefix\"\r\n    `(defun ,name (instance &rest args)\r\n        (setlocal result (call-haxe instance ,method args ,call-on-reference ,keep-args-wrapped))\r\n        (if ,return-instance instance result)))\r\n\r\n(register-method \"push\" push! t t t)\r\n(register-method \"shift\" shift! t)\r\n\r\n(register-method \"pop\" pop! t)\r\n\r\n(defun take! (l num)\r\n    (call-haxe l \"splice\" (list 0 num) t))\r\n(defun drop! (l num)\r\n    (call-haxe l \"splice\" (list 0 num) t)\r\n    l)\r\n(defun slice (l start &optional end)\r\n    (call-haxe l \"slice\" (list start (or end (length l)))))\r\n(defun rslice (l start &optional end)\r\n    (let (len (length l))\r\n        (slice l (- len (or end len)) (- len start))))\r\n(defun peek (l num)\r\n    (slice l 0 num))\r\n\r\n(defun nil? (v) (eq nil v))\r\n\r\n// String functions:\r\n(register-method \"split\" split)\r\n(register-method \"substr\" substring)\r\n(defun char-at (str idx) (substring str idx 1))\r\n\r\n(defun list (&rest args) args)\r\n(defun empty? (list-or-string) (or (nil? list-or-string) (= 0 (length list-or-string))))\r\n\r\n(defun zip (&rest lists)\r\n    \"Create a list of tuples by grouping all same-nth elements in the given lists. Discards elements with no corresponding element in all other lists\"\r\n    (setlocal final-length (first (sort (for l lists (length l)))))\r\n    (for i (range final-length)\r\n        (for l lists (nth l i))))\r\n\r\n(defmacro cond (&rest forms)\r\n    `(if (not ',forms)\r\n            (error! \"cond ran out of options. add a default case\")\r\n        (and ',forms (if (eval (first (first ',forms)))\r\n            (eval (cons 'begin (rest (first ',forms))))\r\n        (eval (cons 'cond (rest ',forms)))))))\r\n\r\n(defmacro let (bindings &rest body)\r\n    (setlocal setlocal-exps \r\n        (cond\r\n            ; New-fangled, single-list let bindings like (name1 val1 name2 val2)\r\n            ((symbol? (first bindings))\r\n                (setlocal names (odd-alternates bindings))\r\n                (setlocal values (even-alternates bindings))\r\n                (for pair (zip names values) `(setlocal ,(first pair) ,(nth pair 1))))\r\n\r\n            ; Old-school, many-list let bindings like ((name1 val1) (name2 val2))\r\n            ((list? (first bindings))\r\n                (for pair bindings `(setlocal ,@pair)))))\r\n    `(begin\r\n        ,@setlocal-exps\r\n        ,@body))\r\n\r\n(defmacro when (cond &rest body)\r\n    `(if ,cond (begin ,@body)))\r\n\r\n(defmacro unless (cond &rest body)\r\n    `(when (not ,cond) ,@body))\r\n\r\n(defmacro while (cond &rest body)\r\n    `(call/cc (lambda (break)\r\n        (loop ()\r\n            (when ,cond\r\n                (call/cc (lambda (continue)\r\n                    ,@body))\r\n                (if ,cond (recur)))))))\r\n\r\n(defun apply (f args)\r\n    (eval `(,f ',@args)))\r\n\r\n(defmacro bind (f &rest bind-args)\r\n    (let (bind-args (for __arg__ bind-args (if (not (eq '_ __arg__)) (eval __arg__) __arg__)))\r\n        `(lambda (&rest call-args)\r\n            (setlocal args (for arg ',bind-args (if (eq '_ arg) (shift! call-args) arg)))\r\n            (apply ,f (append args call-args)))))\r\n\r\n(defmacro rbind (f &rest bind-args)\r\n    (let (bind-args (for __arg__ bind-args (if (not (eq '_ __arg__)) (eval __arg__) __arg__)))\r\n        `(lambda (&rest call-args)\r\n            (setlocal args (for arg ',bind-args (if (eq '_ arg) (pop! call-args) arg)))\r\n            (apply ,f (append call-args args)))))\r\n\r\n(defvar second (rbind nth 1))\r\n(defvar third (rbind nth 2))\r\n(defvar fourth (rbind nth 3))\r\n(defvar fifth (rbind nth 4))\r\n(defvar sixth (rbind nth 5))\r\n(defvar seventh (rbind nth 6))\r\n(defvar eighth (rbind nth 7))\r\n(defvar ninth (rbind nth 8))\r\n(defvar tenth (rbind nth 9))\r\n\r\n(defun collect (iterable)\r\n    (for elem iterable elem))\r\n\r\n(defun enumerate (l)\r\n    (zip (collect (range (length l))) l))\r\n\r\n(defun filter (l &optional pred)\r\n    (let (pred (or pred (lambda (x) x))\r\n            result (list))\r\n        (do-for elem l (when (pred elem) (push! result elem)))\r\n        result))\r\n\r\n(defun current-continuation ()\r\n    (call/cc (lambda (cc) \r\n        (cc cc))))\r\n\r\n(defmacro case (form &rest case-list)\r\n    (let (case-first (first case-list)\r\n            case-rest (rest case-list))\r\n        (if case-first\r\n            `(if (or (eq ,(first case-first) t) (eq ,(first case-first) ,form))\r\n                (begin ,@(rest case-first))\r\n                (case ,form ,@case-rest))\r\n            nil)))\r\n\r\n(defun input-string (&optional prompt)\r\n    (when prompt (message prompt))\r\n    (read-line))\r\n\r\n(defun input-expression (&optional prompt)\r\n    (eval (read (input-string prompt))))\r\n\r\n(defmacro default! (var value)\r\n    `(if (or (not (bound? ,var)) (nil? ,var)) (set! ,var ,value)))\r\n\r\n// (next) and (has-next) should work on Iterables AND Iterators, for convenience\r\n(defun iterator (iterable-or-iterator)\r\n    (if (get-property iterable-or-iterator \"iterator\")\r\n        (call-haxe iterable-or-iterator \"iterator\") iterator-or-iterable))\r\n\r\n(defun next (iterable-or-iterator)\r\n    (call-haxe (iterator iterable-or-iterator) \"next\"))\r\n\r\n(defun has-next (iterable-or-iterator)\r\n    (call-haxe (iterator iterable-or-iterator) \"hasNext\"))\r\n\r\n(if (bound? Thread)\r\n    (defmacro defgen (name args &rest body)\r\n        `(defun ,name ,args\r\n            (let (__lock__ (new Lock)\r\n                    __deque__ (new Deque)\r\n                    __thread__ nil\r\n                    __next__ nil // When has-next is called, the next value must be stored\r\n                    __done__ nil\r\n                    __done-signal__ (symbol)\r\n                    yield (lambda (value)\r\n                                (Deque:add __deque__ value)\r\n                                (Lock:wait __lock__))\r\n                    next (lambda ()\r\n                            (if __done__ nil\r\n                                (begin\r\n                                    (if __next__\r\n                                        (return (let (ret __next__)\r\n                                            (set! __next__ nil)\r\n                                            ret)))\r\n                                    (if (not __thread__)\r\n                                        (set! __thread__ (Thread:create\r\n                                                                (lambda ()\r\n                                                                    ,@body\r\n                                                                    (Deque:add __deque__ __done-signal__)))))\r\n                                    (Lock:release __lock__)\r\n                                    (let (value (Deque:pop __deque__ t))\r\n                                        (case value\r\n                                            (__done-signal__ (set! __done__ t) nil)\r\n                                            (t value))))))\r\n                    has-next (lambda ()\r\n                                (if __done__ nil\r\n                                    (if __next__ t\r\n                                        (let (could-be-next (next))\r\n                                            (case could-be-next\r\n                                                (nil (not __done__))\r\n                                                (t (set! __next__ could-be-next) t)))))))\r\n                (iterable next has-next)))))\r\n\r\n(defun memoize (f)\r\n    \"Return a version of the given function that caches return values for different argument lists\"\r\n    (let (prior-args (dict))\r\n        (lambda (&rest args)\r\n            (or (dict-get prior-args args)\r\n                (let (result (apply f args))\r\n                    (dict-set! prior-args args result)\r\n                    result)))))\r\n\r\n; TODO if it's neither a list nor string, throw an error\r\n; In cases where a function name could reasonably be expected to work the same on EITHER a string or a list, Hiss should support both:\r\n(defun replace (string-or-list old new)\r\n    (cond\r\n        ((list? string-or-list)\r\n            (for elem string-or-list (if (eq old elem) new elem)))\r\n        ((string? string-or-list)\r\n            (call-haxe StringTools \"replace\" (list string-or-list old new)))\r\n        (t (error! \"replace can't be called on $string-or-list\"))))\r\n\r\n(defun index-of (string-or-list part &optional start-index)\r\n    (default! start-index 0)\r\n    (cond\r\n        ((list? string-or-list)\r\n            (setlocal found-idx -1)\r\n            (do-for (idx elem) (enumerate string-or-list)\r\n                (when (and (<= start-index idx) (eq part elem))\r\n                    (set! found-idx idx)\r\n                    (break)))\r\n            found-idx)\r\n        ((string? string-or-list)\r\n            (call-haxe string-or-list \"indexOf\" (list part start-index)))\r\n        (t (error! \"index-of can't be called on $string-or-list\"))))\r\n\r\n(defun last-index-of (string-or-list part &optional start-index)\r\n    (default! start-index (- (length (string-or-list)) 1))\r\n    (cond\r\n        ((list? string-or-list)\r\n            (do-for (idx elem) (reverse (enumerate string-or-list))\r\n                (if (and (>= start-index idx) (eq part elem))\r\n                    (return idx)))\r\n            -1)\r\n        ((string? string-or-list)\r\n            (call-haxe string-or-list \"lastIndexOf\" (list part start-index)))\r\n        (t (error! \"last-index-of can't be called on $string-or-list\"))))\r\n\r\n\r\n(defun contains (string-or-list part)\r\n    (<= 0 (index-of string-or-list part)))\r\n\r\n; It also might make sense to have recursive versions of some of these:\r\n\r\n(defun tree-replace (tree old new)\r\n    (cond\r\n        ((list? tree)\r\n            (for subtree tree (tree-replace subtree old new)))\r\n        (t (if (eq tree old) new tree))))\r\n\r\n(defun tree-contains (tree elem)\r\n    (cond\r\n        ((list? tree)\r\n            (setlocal found nil)\r\n            (do-for subtree tree\r\n                (when (tree-contains subtree elem)\r\n                    (set! found t)\r\n                    (break)))\r\n            found)\r\n        (t (eq tree elem))))\r\n\r\n(defun groups (l size &optional take-remainder)\r\n    (cond\r\n        ((< (length l) size)\r\n            (if take-remainder\r\n                    (list l)\r\n                (list)))\r\n        ((= (length l) size)\r\n            (list l))\r\n        (t (cons (peek l size) (groups (slice l size) size take-remainder)))))\r\n\r\n(defvar *types* (dict))\r\n\r\n(defmacro deftype (name &rest predicates)\r\n    (let (predicate-values\r\n                (for predicate predicates (eval predicate))\r\n            combined-predicate\r\n                (lambda (val)\r\n                    (set! ret t)\r\n                    (do-for predicate predicate-values\r\n                        (when (not (predicate val))\r\n                            (set! ret nil)\r\n                            (break)))\r\n                    ret)\r\n            predicate-name (symbol \"$(symbol-name name)?\"))\r\n        `(begin\r\n            (dict-set! *types* ',name ,combined-predicate)\r\n            (default! ,predicate-name ,combined-predicate)  ; If a predicate with the given name is already defined, it will be kept as the global predicate\r\n            t)))\r\n\r\n(defmacro the (type var)\r\n    \"Throw an error if the given variable is not the given type, else return the variable\"\r\n    `(if ((dict-get *types* ',type) ,var)\r\n            ,var\r\n        (error! ,\"$var is not expected type $type\")))\r\n\r\n(deftype int int?)\r\n(deftype float float?)\r\n(deftype number number?)\r\n(deftype symbol symbol?)\r\n(deftype string string?)\r\n(deftype list list?)\r\n(deftype pair list? (lambda (l) (= 2 (length l))))\r\n(deftype dict dict?)\r\n(deftype function function?)\r\n(deftype macro macro?)\r\n(deftype callable callable?)\r\n(deftype object object?)\r\n(deftype any (lambda (v) t))\r\n\r\n(defmacro defstruct (name &rest fields)\r\n    (let (make-function-name\r\n                (symbol \"make-$name\")\r\n            type-predicate-name\r\n                (symbol \"${name}?\")\r\n            field-names-and-types\r\n                (for field fields\r\n                    (cond\r\n                        ((pair? field) field)\r\n                        ((symbol? field) (list field 'any))\r\n                        (t (error! \"struct fields must either be a symbol (for any type) or a pair (for a specific type)\"))))\r\n            field-indices\r\n                (collect (range 1 (+ 1 (length fields))))\r\n            field-info\r\n                (zip field-indices field-names-and-types)\r\n            field-getters\r\n                (for (index (field-name _)) field-info\r\n                    `(defun ,(symbol \"${name}-${field-name}\") (instance) (nth instance ,index)))\r\n            all-fields-typecheck\r\n                (for (index (field-name field-type)) field-info\r\n                    `(the ,field-type (nth instance ,index)))\r\n            field-setters\r\n                (for (index (field-name field-type)) field-info\r\n                    `(defun ,(symbol \"${name}-set-${field-name}!\") (instance value) (set-nth! instance ,index (the ,field-type value)))))\r\n\r\n    `(begin\r\n        (defun ,make-function-name (&rest make-args) (the ,name (cons ',name make-args)))\r\n        (defun ,type-predicate-name (instance)\r\n            (and (eq ',name (first instance))\r\n                (not (error? (begin ,@all-fields-typecheck)))))\r\n\r\n        ,@field-getters\r\n        ,@field-setters\r\n        (deftype ,name ,type-predicate-name))))");
+	hiss_StaticFiles._registerFileContent("stdlib2.hiss","(defmacro register-method (method name &optional call-on-reference keep-args-wrapped return-instance)\r\n    \"Register a method call as an unqualified global function. Unlike CCInterp.importClass, there won't be a Class: prefix\"\r\n    `(defun ,name (instance &rest args)\r\n        (setlocal result (call-haxe instance ,method args ,call-on-reference ,keep-args-wrapped))\r\n        (if ,return-instance instance result)))\r\n\r\n(register-method \"push\" push! t t t)\r\n(register-method \"shift\" shift! t)\r\n\r\n(register-method \"pop\" pop! t)\r\n\r\n(defun take! (l num)\r\n    (call-haxe l \"splice\" (list 0 num) t))\r\n(defun drop! (l num)\r\n    (call-haxe l \"splice\" (list 0 num) t)\r\n    l)\r\n(defun slice (l start &optional end)\r\n    (call-haxe l \"slice\" (list start (or end (length l)))))\r\n(defun rslice (l start &optional end)\r\n    (let (len (length l))\r\n        (slice l (- len (or end len)) (- len start))))\r\n(defun peek (l num)\r\n    (slice l 0 num))\r\n\r\n(defun nil? (v) (eq nil v))\r\n\r\n// String functions:\r\n(register-method \"split\" split)\r\n(register-method \"substr\" substring)\r\n(defun char-at (str idx) (substring str idx 1))\r\n\r\n(defun list (&rest args) args)\r\n(defun empty? (list-or-string) (or (nil? list-or-string) (= 0 (length list-or-string))))\r\n\r\n(defun zip (&rest lists)\r\n    \"Create a list of tuples by grouping all same-nth elements in the given lists. Discards elements with no corresponding element in all other lists\"\r\n    (setlocal final-length (first (sort (for l lists (length l)))))\r\n    (for i (range final-length)\r\n        (for l lists (nth l i))))\r\n\r\n(defmacro cond (&rest forms)\r\n    `(if (not ',forms)\r\n            (error! \"cond ran out of options. add a default case\")\r\n        (and ',forms (if (eval (first (first ',forms)))\r\n            (eval (cons 'begin (rest (first ',forms))))\r\n        (eval (cons 'cond (rest ',forms)))))))\r\n\r\n(defmacro let (bindings &rest body)\r\n    (setlocal setlocal-exps \r\n        (cond\r\n            ; New-fangled, single-list let bindings like (name1 val1 name2 val2)\r\n            ((symbol? (first bindings))\r\n                (setlocal names (odd-alternates bindings))\r\n                (setlocal values (even-alternates bindings))\r\n                (for pair (zip names values) `(setlocal ,(first pair) ,(nth pair 1))))\r\n\r\n            ; Old-school, many-list let bindings like ((name1 val1) (name2 val2))\r\n            ((list? (first bindings))\r\n                (for pair bindings `(setlocal ,@pair)))))\r\n    `(begin\r\n        ,@setlocal-exps\r\n        ,@body))\r\n\r\n(defmacro when (cond &rest body)\r\n    `(if ,cond (begin ,@body)))\r\n\r\n(defmacro unless (cond &rest body)\r\n    `(when (not ,cond) ,@body))\r\n\r\n(defmacro while (cond &rest body)\r\n    `(call/cc (lambda (break)\r\n        (loop ()\r\n            (when ,cond\r\n                (call/cc (lambda (continue)\r\n                    ,@body))\r\n                (if ,cond (recur)))))))\r\n\r\n(defun apply (f args)\r\n    (eval `(,f ',@args)))\r\n\r\n(defmacro bind (f &rest bind-args)\r\n    (let (bind-args (for __arg__ bind-args (if (not (eq '_ __arg__)) (eval __arg__) __arg__)))\r\n        `(lambda (&rest call-args)\r\n            (setlocal args (for arg ',bind-args (if (eq '_ arg) (shift! call-args) arg)))\r\n            (apply ,f (append args call-args)))))\r\n\r\n(defmacro rbind (f &rest bind-args)\r\n    (let (bind-args (for __arg__ bind-args (if (not (eq '_ __arg__)) (eval __arg__) __arg__)))\r\n        `(lambda (&rest call-args)\r\n            (setlocal args (for arg ',bind-args (if (eq '_ arg) (pop! call-args) arg)))\r\n            (apply ,f (append call-args args)))))\r\n\r\n(defvar second (rbind nth 1))\r\n(defvar third (rbind nth 2))\r\n(defvar fourth (rbind nth 3))\r\n(defvar fifth (rbind nth 4))\r\n(defvar sixth (rbind nth 5))\r\n(defvar seventh (rbind nth 6))\r\n(defvar eighth (rbind nth 7))\r\n(defvar ninth (rbind nth 8))\r\n(defvar tenth (rbind nth 9))\r\n\r\n(defun collect (iterable)\r\n    (for elem iterable elem))\r\n\r\n(defun enumerate (l)\r\n    (zip (collect (range (length l))) l))\r\n\r\n(defun filter (l &optional pred)\r\n    (let (pred (or pred (lambda (x) x))\r\n            result (list))\r\n        (do-for elem l (when (pred elem) (push! result elem)))\r\n        result))\r\n\r\n(defun current-continuation ()\r\n    (call/cc (lambda (cc) \r\n        (cc cc))))\r\n\r\n(defmacro case (form &rest case-list)\r\n    (let (case-first (first case-list)\r\n            case-rest (rest case-list))\r\n        (if case-first\r\n            `(if (or (eq ',(first case-first) 'default) (eq ,(first case-first) ,form))\r\n                (begin ,@(rest case-first))\r\n                (case ,form ,@case-rest))\r\n            nil)))\r\n\r\n(defun input-string (&optional prompt)\r\n    (when prompt (message prompt))\r\n    (read-line))\r\n\r\n(defun input-expression (&optional prompt)\r\n    (eval (read (input-string prompt))))\r\n\r\n(defmacro default! (var value)\r\n    `(if (or (not (bound? ,var)) (nil? ,var)) (set! ,var ,value)))\r\n\r\n// (next) and (has-next) should work on Iterables AND Iterators, for convenience\r\n(defun iterator (iterable-or-iterator)\r\n    (if (get-property iterable-or-iterator \"iterator\")\r\n        (call-haxe iterable-or-iterator \"iterator\") iterator-or-iterable))\r\n\r\n(defun next (iterable-or-iterator)\r\n    (call-haxe (iterator iterable-or-iterator) \"next\"))\r\n\r\n(defun has-next (iterable-or-iterator)\r\n    (call-haxe (iterator iterable-or-iterator) \"hasNext\"))\r\n\r\n(if (bound? Thread)\r\n    (defmacro defgen (name args &rest body)\r\n        `(defun ,name ,args\r\n            (let (__lock__ (new Lock)\r\n                    __deque__ (new Deque)\r\n                    __thread__ nil\r\n                    __next__ nil // When has-next is called, the next value must be stored\r\n                    __done__ nil\r\n                    __done-signal__ (symbol)\r\n                    yield (lambda (value)\r\n                                (Deque:add __deque__ value)\r\n                                (Lock:wait __lock__))\r\n                    next (lambda ()\r\n                            (if __done__ nil\r\n                                (begin\r\n                                    (if __next__\r\n                                        (return (let (ret __next__)\r\n                                            (set! __next__ nil)\r\n                                            ret)))\r\n                                    (if (not __thread__)\r\n                                        (set! __thread__ (Thread:create\r\n                                                                (lambda ()\r\n                                                                    ,@body\r\n                                                                    (Deque:add __deque__ __done-signal__)))))\r\n                                    (Lock:release __lock__)\r\n                                    (let (value (Deque:pop __deque__ t))\r\n                                        (case value\r\n                                            (__done-signal__ (set! __done__ t) nil)\r\n                                            (default value))))))\r\n                    has-next (lambda ()\r\n                                (if __done__ nil\r\n                                    (if __next__ t\r\n                                        (let (could-be-next (next))\r\n                                            (case could-be-next\r\n                                                (nil (not __done__))\r\n                                                (default (set! __next__ could-be-next) t)))))))\r\n                (iterable next has-next)))))\r\n\r\n(defun memoize (f)\r\n    \"Return a version of the given function that caches return values for different argument lists\"\r\n    (let (prior-args (dict))\r\n        (lambda (&rest args)\r\n            (or (dict-get prior-args args)\r\n                (let (result (apply f args))\r\n                    (dict-set! prior-args args result)\r\n                    result)))))\r\n\r\n; TODO if it's neither a list nor string, throw an error\r\n; In cases where a function name could reasonably be expected to work the same on EITHER a string or a list, Hiss should support both:\r\n(defun replace (string-or-list old new)\r\n    (cond\r\n        ((list? string-or-list)\r\n            (for elem string-or-list (if (eq old elem) new elem)))\r\n        ((string? string-or-list)\r\n            (call-haxe StringTools \"replace\" (list string-or-list old new)))\r\n        (t (error! \"replace can't be called on $string-or-list\"))))\r\n\r\n(defun index-of (string-or-list part &optional start-index)\r\n    (default! start-index 0)\r\n    (cond\r\n        ((list? string-or-list)\r\n            (setlocal found-idx -1)\r\n            (do-for (idx elem) (enumerate string-or-list)\r\n                (when (and (<= start-index idx) (eq part elem))\r\n                    (set! found-idx idx)\r\n                    (break)))\r\n            found-idx)\r\n        ((string? string-or-list)\r\n            (call-haxe string-or-list \"indexOf\" (list part start-index)))\r\n        (t (error! \"index-of can't be called on $string-or-list\"))))\r\n\r\n(defun last-index-of (string-or-list part &optional start-index)\r\n    (default! start-index (- (length (string-or-list)) 1))\r\n    (cond\r\n        ((list? string-or-list)\r\n            (do-for (idx elem) (reverse (enumerate string-or-list))\r\n                (if (and (>= start-index idx) (eq part elem))\r\n                    (return idx)))\r\n            -1)\r\n        ((string? string-or-list)\r\n            (call-haxe string-or-list \"lastIndexOf\" (list part start-index)))\r\n        (t (error! \"last-index-of can't be called on $string-or-list\"))))\r\n\r\n\r\n(defun contains (string-or-list part)\r\n    (<= 0 (index-of string-or-list part)))\r\n\r\n; It also might make sense to have recursive versions of some of these:\r\n\r\n(defun tree-replace (tree old new)\r\n    (cond\r\n        ((list? tree)\r\n            (for subtree tree (tree-replace subtree old new)))\r\n        (t (if (eq tree old) new tree))))\r\n\r\n(defun tree-contains (tree elem)\r\n    (cond\r\n        ((list? tree)\r\n            (setlocal found nil)\r\n            (do-for subtree tree\r\n                (when (tree-contains subtree elem)\r\n                    (set! found t)\r\n                    (break)))\r\n            found)\r\n        (t (eq tree elem))))\r\n\r\n(defun groups (l size &optional take-remainder)\r\n    (cond\r\n        ((< (length l) size)\r\n            (if take-remainder\r\n                    (list l)\r\n                (list)))\r\n        ((= (length l) size)\r\n            (list l))\r\n        (t (cons (peek l size) (groups (slice l size) size take-remainder)))))\r\n\r\n(defvar *types* (dict))\r\n\r\n(defmacro deftype (name &rest predicates)\r\n    (let (predicate-values\r\n                (for predicate predicates (eval predicate))\r\n            combined-predicate\r\n                (lambda (val)\r\n                    (set! ret t)\r\n                    (do-for predicate predicate-values\r\n                        (when (not (predicate val))\r\n                            (set! ret nil)\r\n                            (break)))\r\n                    ret)\r\n            predicate-name (symbol \"$(symbol-name name)?\"))\r\n        `(begin\r\n            (dict-set! *types* ',name ,combined-predicate)\r\n            (default! ,predicate-name ,combined-predicate)  ; If a predicate with the given name is already defined, it will be kept as the global predicate\r\n            t)))\r\n\r\n(defmacro the (type var)\r\n    \"Throw an error if the given variable is not the given type, else return the variable\"\r\n    `(if ((dict-get *types* ',type) ,var)\r\n            ,var\r\n        (error! ,\"$var is not expected type $type\")))\r\n\r\n(deftype int int?)\r\n(deftype float float?)\r\n(deftype number number?)\r\n(deftype symbol symbol?)\r\n(deftype string string?)\r\n(deftype list list?)\r\n(deftype pair list? (lambda (l) (= 2 (length l))))\r\n(deftype dict dict?)\r\n(deftype function function?)\r\n(deftype macro macro?)\r\n(deftype callable callable?)\r\n(deftype object object?)\r\n(deftype any (lambda (v) t))\r\n\r\n(defmacro defstruct (name &rest fields)\r\n    (let (make-function-name\r\n                (symbol \"make-$name\")\r\n            type-predicate-name\r\n                (symbol \"${name}?\")\r\n            field-names-and-types\r\n                (for field fields\r\n                    (cond\r\n                        ((pair? field) field)\r\n                        ((symbol? field) (list field 'any))\r\n                        (t (error! \"struct fields must either be a symbol (for any type) or a pair (for a specific type)\"))))\r\n            field-indices\r\n                (collect (range 1 (+ 1 (length fields))))\r\n            field-info\r\n                (zip field-indices field-names-and-types)\r\n            field-getters\r\n                (for (index (field-name _)) field-info\r\n                    `(defun ,(symbol \"${name}-${field-name}\") (instance) (nth instance ,index)))\r\n            all-fields-typecheck\r\n                (for (index (field-name field-type)) field-info\r\n                    `(the ,field-type (nth instance ,index)))\r\n            field-setters\r\n                (for (index (field-name field-type)) field-info\r\n                    `(defun ,(symbol \"${name}-set-${field-name}!\") (instance value) (set-nth! instance ,index (the ,field-type value)))))\r\n\r\n    `(begin\r\n        (defun ,make-function-name (&rest make-args) (the ,name (cons ',name make-args)))\r\n        (defun ,type-predicate-name (instance)\r\n            (and (eq ',name (first instance))\r\n                (not (error? (begin ,@all-fields-typecheck)))))\r\n\r\n        ,@field-getters\r\n        ,@field-setters\r\n        (deftype ,name ,type-predicate-name))))");
 	this.load("stdlib2.hiss");
 };
 hiss_CCInterp.__name__ = "hiss.CCInterp";
@@ -2517,7 +2558,7 @@ hiss_CCInterp.prototype = {
 	}
 	,disableTrace: function() {
 		if(this.tempTrace == null) {
-			haxe_Log.trace("Disabling trace",{ fileName : "src/hiss/CCInterp.hx", lineNumber : 70, className : "hiss.CCInterp", methodName : "disableTrace"});
+			haxe_Log.trace("Disabling trace",{ fileName : "src/hiss/CCInterp.hx", lineNumber : 72, className : "hiss.CCInterp", methodName : "disableTrace"});
 			this.tempTrace = haxe_Log.trace;
 			haxe_Log.trace = function(str,posInfo) {
 				return;
@@ -2526,7 +2567,7 @@ hiss_CCInterp.prototype = {
 	}
 	,enableTrace: function() {
 		if(this.tempTrace != null) {
-			haxe_Log.trace("Enabling trace",{ fileName : "src/hiss/CCInterp.hx", lineNumber : 78, className : "hiss.CCInterp", methodName : "enableTrace"});
+			haxe_Log.trace("Enabling trace",{ fileName : "src/hiss/CCInterp.hx", lineNumber : 80, className : "hiss.CCInterp", methodName : "enableTrace"});
 			haxe_Log.trace = this.tempTrace;
 		}
 	}
@@ -2537,7 +2578,7 @@ hiss_CCInterp.prototype = {
 	,importClass: function(clazz,name,methodNameFunction,getterNameFunction,setterNameFunction) {
 		var _gthis = this;
 		if(this.debugClassImports) {
-			haxe_Log.trace("Import " + name,{ fileName : "src/hiss/CCInterp.hx", lineNumber : 100, className : "hiss.CCInterp", methodName : "importClass"});
+			haxe_Log.trace("Import " + name,{ fileName : "src/hiss/CCInterp.hx", lineNumber : 102, className : "hiss.CCInterp", methodName : "importClass"});
 		}
 		hiss_HissTools.put(this.globals,name,hiss_HValue.Object("Class",clazz));
 		if(methodNameFunction == null) {
@@ -2564,7 +2605,7 @@ hiss_CCInterp.prototype = {
 			if(Type.typeof(Reflect.getProperty(dummyInstance,instanceField[0]))._hx_index == 5) {
 				var translatedName = methodNameFunction(instanceField[0]);
 				if(this.debugClassImports) {
-					haxe_Log.trace(translatedName,{ fileName : "src/hiss/CCInterp.hx", lineNumber : 132, className : "hiss.CCInterp", methodName : "importClass"});
+					haxe_Log.trace(translatedName,{ fileName : "src/hiss/CCInterp.hx", lineNumber : 134, className : "hiss.CCInterp", methodName : "importClass"});
 				}
 				hiss_HissTools.put(this.globals,translatedName,hiss_HValue.Function((function(instanceField1) {
 					return function(args,env,cc) {
@@ -2603,7 +2644,7 @@ hiss_CCInterp.prototype = {
 			if(Type.typeof(fieldValue[0])._hx_index == 5) {
 				var translatedName1 = methodNameFunction(classField);
 				if(this.debugClassImports) {
-					haxe_Log.trace(translatedName1,{ fileName : "src/hiss/CCInterp.hx", lineNumber : 176, className : "hiss.CCInterp", methodName : "importClass"});
+					haxe_Log.trace(translatedName1,{ fileName : "src/hiss/CCInterp.hx", lineNumber : 178, className : "hiss.CCInterp", methodName : "importClass"});
 				}
 				hiss_HissTools.put(this.globals,translatedName1,hiss_HValue.Function((function(fieldValue1) {
 					return function(args3,env3,cc3) {
@@ -2648,6 +2689,7 @@ hiss_CCInterp.prototype = {
 		hiss_HissTools.put(this.globals,name,tmp);
 	}
 	,currentBeginFunction: null
+	,currentEvalAllFunction: null
 	,emptyDict: function() {
 		return hiss_HValue.Dict(new hiss_HDict(this));
 	}
@@ -2680,8 +2722,9 @@ hiss_CCInterp.prototype = {
 			}
 		}
 	}
-	,useBeginAndIterate: function(beginFunction,iterateFunction) {
+	,useFunctions: function(beginFunction,evalAllFunction,iterateFunction) {
 		this.currentBeginFunction = beginFunction;
+		this.currentEvalAllFunction = evalAllFunction;
 		hiss_HissTools.put(this.globals,"begin",hiss_HValue.SpecialForm(beginFunction,"begin"));
 		var f = iterateFunction;
 		this.importSpecialForm(function(args,env,cc) {
@@ -2716,7 +2759,7 @@ hiss_CCInterp.prototype = {
 			throw new js__$Boot_HaxeError(hiss_HSignal.Quit);
 		},"quit");
 		var locals = this.emptyEnv();
-		hiss_HaxeTools.println("Hiss version " + "types-462 (target: nodejs)");
+		hiss_HaxeTools.println("Hiss version " + "types-469 (target: nodejs)");
 		hiss_HaxeTools.println("Type (quit) to quit the REPL");
 		while(true) {
 			hiss_HaxeTools.print(">>> ");
@@ -2822,7 +2865,7 @@ hiss_CCInterp.prototype = {
 	}
 	,funcall: function(callInline,args,env,cc) {
 		var _gthis = this;
-		this.evalAll(args,env,function(values) {
+		this.currentEvalAllFunction(args,env,function(values) {
 			(hiss_HissTools.toHFunction(hiss_HissTools.first(values)))(hiss_HissTools.rest(values),callInline ? env : _gthis.emptyEnv(),cc);
 			return;
 		});
@@ -2841,6 +2884,17 @@ hiss_CCInterp.prototype = {
 				});
 				return;
 			});
+		}
+	}
+	,trEvalAll: function(args,env,cc) {
+		if(!hiss_HissTools.truthy(args)) {
+			cc(hiss_HValue.Nil);
+		} else {
+			var _g = [];
+			var _g1 = 0;
+			var _g2 = hiss_HissTools.toList(args);
+			while(_g1 < _g2.length) _g.push(this.eval(_g2[_g1++],env));
+			cc(hiss_HValue.List(_g));
 		}
 	}
 	,quote: function(args,env,cc) {
@@ -3108,7 +3162,7 @@ hiss_CCInterp.prototype = {
 		var ccId = hiss_CCInterp.ccNum++;
 		var ccHFunction = hiss_HValue.Function(function(innerArgs,innerEnv,innerCC) {
 			var arg = !hiss_HissTools.truthy(innerArgs) ? hiss_HValue.Nil : hiss_HissTools.first(innerArgs);
-			haxe_Log.trace("calling cc#" + ccId + " with " + hiss_HissTools.toPrint(arg),{ fileName : "src/hiss/CCInterp.hx", lineNumber : 976, className : "hiss.CCInterp", methodName : "callCC"});
+			haxe_Log.trace("calling cc#" + ccId + " with " + hiss_HissTools.toPrint(arg),{ fileName : "src/hiss/CCInterp.hx", lineNumber : 995, className : "hiss.CCInterp", methodName : "callCC"});
 			cc(arg);
 			return;
 		},"cc");
@@ -3334,7 +3388,7 @@ hiss_CCInterp.prototype = {
 				case 9:
 					var cc1 = cc;
 					var _gthis1 = _gthis;
-					_gthis.evalAll(exp,env,function(values) {
+					_gthis.currentEvalAllFunction(exp,env,function(values) {
 						(hiss_HissTools.toHFunction(hiss_HissTools.first(values)))(hiss_HissTools.rest(values),_gthis1.emptyEnv(),cc1);
 						return;
 					});
@@ -4677,7 +4731,7 @@ hiss_HissTestCase.prototype = $extend(utest_Test.prototype,{
 var hiss_HissTools = $hx_exports["hiss"]["HissTools"] = function() { };
 hiss_HissTools.__name__ = "hiss.HissTools";
 hiss_HissTools.version = function() {
-	return hiss_HValue.String("types-462 (target: nodejs)");
+	return hiss_HValue.String("types-469 (target: nodejs)");
 };
 hiss_HissTools.homeDir = function() {
 	var s = Sys.systemName() == "Windows" ? "UserProfile" : "HOME";
@@ -5678,6 +5732,82 @@ hiss_VariadicFunctions.numCompare = function(type,args,env,cc) {
 		}
 		cc(hiss_HValue.T);
 	}
+};
+var hiss_wrappers_HDate = function(year,month,day,hour,min,sec) {
+	this.instance = new Date(year,month,day,hour,min,sec);
+};
+hiss_wrappers_HDate.__name__ = "hiss.wrappers.HDate";
+hiss_wrappers_HDate.fromHaxeDate = function(date) {
+	var hd = new hiss_wrappers_HDate(2020,0,0,0,0,0);
+	hd.instance = date;
+	return hd;
+};
+hiss_wrappers_HDate.fromString = function(s) {
+	return hiss_wrappers_HDate.fromHaxeDate(HxOverrides.strDate(s));
+};
+hiss_wrappers_HDate.fromTime = function(t) {
+	return hiss_wrappers_HDate.fromHaxeDate(new Date(t));
+};
+hiss_wrappers_HDate.now = function() {
+	return hiss_wrappers_HDate.fromHaxeDate(new Date());
+};
+hiss_wrappers_HDate.getDate = function(date) {
+	if(date == null) {
+		date = hiss_wrappers_HDate.now();
+	}
+	return date.instance.getDate();
+};
+hiss_wrappers_HDate.getDay = function(date) {
+	if(date == null) {
+		date = hiss_wrappers_HDate.now();
+	}
+	return date.instance.getDay();
+};
+hiss_wrappers_HDate.getFullYear = function(date) {
+	if(date == null) {
+		date = hiss_wrappers_HDate.now();
+	}
+	return date.instance.getFullYear();
+};
+hiss_wrappers_HDate.getHours = function(date) {
+	if(date == null) {
+		date = hiss_wrappers_HDate.now();
+	}
+	return date.instance.getHours();
+};
+hiss_wrappers_HDate.getMinutes = function(date) {
+	if(date == null) {
+		date = hiss_wrappers_HDate.now();
+	}
+	return date.instance.getMinutes();
+};
+hiss_wrappers_HDate.getMonth = function(date) {
+	if(date == null) {
+		date = hiss_wrappers_HDate.now();
+	}
+	return date.instance.getMonth();
+};
+hiss_wrappers_HDate.getSeconds = function(date) {
+	if(date == null) {
+		date = hiss_wrappers_HDate.now();
+	}
+	return date.instance.getSeconds();
+};
+hiss_wrappers_HDate.getTime = function(date) {
+	if(date == null) {
+		date = hiss_wrappers_HDate.now();
+	}
+	return date.instance.getTime();
+};
+hiss_wrappers_HDate.getTimezoneOffset = function(date) {
+	if(date == null) {
+		date = hiss_wrappers_HDate.now();
+	}
+	return date.instance.getTimezoneOffset();
+};
+hiss_wrappers_HDate.prototype = {
+	instance: null
+	,__class__: hiss_wrappers_HDate
 };
 var hiss_wrappers_HFile = function() { };
 hiss_wrappers_HFile.__name__ = "hiss.wrappers.HFile";
