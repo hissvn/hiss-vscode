@@ -49,7 +49,27 @@
 					"description": "Path of a Hiss script to run on launch."
 				}
 			}
-		}
+		},
+		"languages": [{
+			"id": "hiss",
+			"aliases": ["Hiss", "hiss"],
+			"extensions": [".hiss", ".hisspy", ".hissjs"],
+			"configuration": "./Hiss.configuration.json"
+		  }],
+		  "grammars": [{
+			"language": "hiss",
+			"scopeName": "source.hiss",
+			"path": "./syntaxes/Hiss.tmLanguage"
+		  },{
+			"scopeName": "markdown.hiss.codeblock",
+			"path": "./syntaxes/codeblock.json",
+			"injectTo": [
+			  "text.html.markdown"
+			],
+			"embeddedLanguages": {
+			  "meta.embedded.block.superjs": "hiss"
+			}
+		  }]
 	},
 	"scripts": {
 		"lint": "eslint .",
