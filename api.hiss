@@ -48,11 +48,6 @@
 (defun get-text (&optional range doc)
     (call-haxe (or doc (document)) "getText" (list range)))
 
-'(let (exp-str 
-            (let (sel (selected-text))
-                (cond 
-                    ((empty? sel) (input-string \"Expression to evaluate:\"))
-                    (t sel))))
-    (print exp-str)
-    (when (not (empty? exp-str))
-        (eval (read exp-str))))
+// UI
+(defun input-choices (choices &optional prompt)
+    (input-choice choices prompt t))

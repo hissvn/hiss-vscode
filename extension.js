@@ -2,9 +2,10 @@
 // Import the module and reference it with the alias vscode in your code below
 const vscode = require('vscode');
 const commands = vscode.commands;
-const infoMessage = vscode.window.showInformationMessage;
-const errorMessage = vscode.window.showErrorMessage;
-const inputBox = vscode.window.showInputBox;
+var window = vscode.window;
+const infoMessage = window.showInformationMessage;
+const errorMessage = window.showErrorMessage;
+const inputBox = window.showInputBox;
 
 const hiss = require('./hiss-node.js').hiss;
 const HT = hiss.HissTools;
@@ -55,6 +56,30 @@ function freshInterpreter() {
 			});
 		}, "input-string");
 
+		// (input-choice [choices] [prompt] [allow-multiple])
+		interp.importCCFunction((args, env, cc) => {
+			args = HT.toList(args);
+			var choices = HT.toList(args[0]);
+			var prompt = ""; if (args.length > 1) prompt = HT.toHaxeString(args[1]);
+			var allowMultiple = false; if (args.length > 2) allowMultiple = HT.truthy(args[2]);
+
+			var choiceStrings = choices.map(HT.toPrint);
+			var dict = {};
+			choiceStrings.forEach((key, i) => dict[key] = choices[i]);
+
+			window.showQuickPick(choiceStrings, {
+				canPickMany: allowMultiple,
+				placeHolder: prompt
+			}).then((result) => {
+				if (allowMultiple) {
+					var results = result.map((str) => dict[str]);
+					cc(HT.toHValue(results));
+				} else {
+					cc(dict[result]);
+				}
+			});
+		}, "input-choice");
+
 		// (insert [expression])
 		interp.importCCFunction((args, env, cc) => {
 			var arg = first(args);
@@ -67,7 +92,6 @@ function freshInterpreter() {
 			} else {
 				errorMessage("You need to select an editor before inserting.");
 			}
-
 		}, "insert");
 
 		// (vscode-command [command name])
