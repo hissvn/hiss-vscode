@@ -1,5 +1,21 @@
+
 /**
- * General properties
+ * Hiss API
+ */
+
+(defun input-choices (choices &optional prompt)
+    (input-choice choices prompt t))
+
+(defvar *hiss-vscode-commands* (dict))
+
+(defmacro defcommand (name &rest body)
+    `(dict-set! *hiss-vscode-commands* ',name (lambda () ,@body)))
+
+(defun call-command ()
+    (funcall (dict-get *hiss-vscode-commands* (input-choice (for (key _) *hiss-vscode-commands* key)))))
+
+/**
+ * General VSCode properties
  */
 
 (defun start (object) (get-property object "start"))
@@ -47,7 +63,3 @@
 // querying the active doc will be the most typical
 (defun get-text (&optional range doc)
     (call-haxe (or doc (document)) "getText" (list range)))
-
-// UI
-(defun input-choices (choices &optional prompt)
-    (input-choice choices prompt t))

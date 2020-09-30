@@ -24,6 +24,10 @@
 				"title": "Hiss: Insert the value of a Hiss expression"
 			},
 			{
+				"command": "hiss-vscode.command",
+				"title": "Call a built-in or custom Hiss command"
+			},
+			{
 				"command": "hiss-vscode.restart",
 				"title": "Hiss: Restart the interpreter"
 			}
@@ -38,6 +42,11 @@
 				"command": "hiss-vscode.insert",
 				"key": "ctrl+i",
 				"mac": "cmd+i"
+			},
+			{
+				"command": "hiss-vscode.command",
+				"key": "ctrl+;",
+				"mac": "cmd+;"
 			}
 		],
 		"configuration": {

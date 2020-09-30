@@ -168,11 +168,16 @@ function activate(context) {
 		return runHissExp(sharedCode.replace(/{}/g, "insert"));
 	});
 
+	let command = commands.registerCommand('hiss-vscode.command', () => {
+		runHissExp("(call-command)");
+	});
+
 	// Restart the interpreter to clear state
 	let restart = commands.registerCommand('hiss-vscode.restart', freshInterpreter);
 
 	context.subscriptions.push(eval);
 	context.subscriptions.push(insert);
+	context.subscriptions.push(command);
 	context.subscriptions.push(restart);
 
 	freshInterpreter();
