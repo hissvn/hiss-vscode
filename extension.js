@@ -130,7 +130,7 @@ function activate(context) {
 				(let (sel (selected-text))\
 					(if (empty? sel)\
 							(input-string \"Expression to {}:\")\
-						sel)))\
+						\"(begin $sel)\")))\
 			(when (not (empty? exp-str))\
 				({} (eval (read exp-str)))))";
 
