@@ -15,6 +15,13 @@
     (funcall (dict-get *hiss-vscode-commands* (input-choice (for (key _) *hiss-vscode-commands* key)))))
 
 /**
+ * Built-in commands
+ */
+
+(defcommand "Load current file as Hiss"
+    (load (file-name)))
+
+/**
  * General VSCode properties
  */
 
