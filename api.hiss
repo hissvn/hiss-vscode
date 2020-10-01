@@ -14,12 +14,31 @@
 (defun call-command ()
     (funcall (dict-get *hiss-vscode-commands* (input-choice (for (key _) *hiss-vscode-commands* key)))))
 
+// Path functions should operate on the current filename by default
+(defun dir-name (&optional file) (_dir-name (or file (file-name))))
+(defun base-name (&optional file) (_base-name (or file (file-name))))
+
+// (load) and (get-content) should always load relative to the current script path
+(defmacro call-relative (func file)
+    `(let (load-dir
+                (dir-name (if (bound? *current-file-name*) *current-file-name* (file-name)))
+            *current-file-name*
+                (path-join load-dir ,file))
+        (,func *current-file-name*)))
+(defvar _load load)
+(defun load (file)
+    (call-relative _load file))
+(defvar _get-content get-content)
+(defun get-content (file)
+    (call-relative _get-content file))
+    
+
 /**
  * Built-in commands
  */
 
 (defcommand "Load current file as Hiss"
-    (load (file-name)))
+    (load (base-name (file-name))))
 
 /**
  * Node Modules

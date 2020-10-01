@@ -8,6 +8,7 @@ const errorMessage = window.showErrorMessage;
 const inputBox = window.showInputBox;
 
 const fs = require('fs');
+const path = require('path');
 
 const hiss = require('./hiss-node.js').hiss;
 const HT = hiss.HissTools;
@@ -114,7 +115,11 @@ function freshInterpreter() {
 		// Node modules
 		interp.importVar(fs, "fs");
 
-		// vscode API
+		interp.importFunction(path.basename, "_base-name");
+		interp.importFunction(path.join, "path-join");
+		interp.importFunction(path.dirname, "_dir-name");
+
+		// The rest of the API is defined in api.hiss using the module object
 		interp.importVar(vscode, "vscode");
 
 		// The rest of the API is defined in api.hiss
