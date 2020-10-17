@@ -7,6 +7,8 @@ const infoMessage = window.showInformationMessage;
 const errorMessage = window.showErrorMessage;
 const inputBox = window.showInputBox;
 
+const fs = require('fs');
+
 const hiss = require('./hiss-node.js').hiss;
 const HT = hiss.HissTools;
 const hval = HT.toHValue;
@@ -109,9 +111,13 @@ function freshInterpreter() {
 			return new vscode.Range(start, end);
 		}, { name: "make-range" });
 
-		// The rest of the API is defined in api.hiss using the module object
+		// Node modules
+		interp.importVar(fs, "fs");
+
+		// vscode API
 		interp.importVar(vscode, "vscode");
 
+		// The rest of the API is defined in api.hiss
 		interp.load(__dirname + "/api.hiss");
 
 		// Load the user's launch script

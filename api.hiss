@@ -22,16 +22,37 @@
     (load (file-name)))
 
 /**
- * General VSCode properties
+ * Node Modules
+ */
+
+(defun exists (filename)
+    (call-haxe fs "existsSync" [filename]))
+
+/**
+ * General VSCode object properties
  */
 
 (defun start (object) (get-property object "start"))
 (defun end (object) (get-property object "end"))
 
+/**
+ * vscode.window
+ */
 (defvar window (get-property vscode "window"))
 
 (defun active-editor ()
     (get-property window "activeTextEditor"))
+
+(defun show-text-document (doc)
+    (call-haxe window "showTextDocument" [doc]))
+
+/**
+ * vscode.workspace
+ */
+(defvar workspace (get-property vscode "workspace"))
+
+(defun open-text-document (uri)
+    (call-haxe workspace "openTextDocument" [uri]))
 
 /**
  * Selection
@@ -59,7 +80,7 @@
 
 (defun file-name (&optional doc)
     (get-property (or doc (document)) "fileName"))
-		
+
 (defun is-dirty (&optional doc)
     (get-property (or doc (document)) "isDirty"))
 
@@ -70,3 +91,24 @@
 // querying the active doc will be the most typical
 (defun get-text (&optional range doc)
     (call-haxe (or doc (document)) "getText" [range]))
+
+/**
+ * Uri
+ */
+
+(defvar Uri (get-property vscode "Uri"))
+(defun Uri:parse (value)
+    (call-haxe Uri "parse" [value]))
+
+/**
+ * Emacs equivalents
+ */
+
+(defun find-file (&optional path)
+    (let (path
+                (or path (input-string "Filename"))
+            uri
+                (Uri:parse (if (exists path) "file:$path" "untitled:$path"))
+            doc
+                (open-text-document uri))
+        (show-text-document doc)))
