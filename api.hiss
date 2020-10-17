@@ -69,4 +69,4 @@
 // Argument order is flipped from a typical method structure because I imagine
 // querying the active doc will be the most typical
 (defun get-text (&optional range doc)
-    (call-haxe (or doc (document)) "getText" (list range)))
+    (call-haxe (or doc (document)) "getText" [range]))

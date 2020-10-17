@@ -36,14 +36,14 @@ function freshInterpreter() {
 			}, (err) => {
 				errorMessage("read-line failed with " + err.toString());
 			});
-		}, "read-line");
+		}, { name: "read-line" } );
 
 		// (input-string [prompt]) via input box
 		interp.importCCFunction((args, env, cc) => {
 			var prompt = "";
-			if (HT.truthy(args)) {
+			if (interp.truthy(args)) {
 				var firstArg = first(args);
-				if (HT.truthy(firstArg)) {
+				if (interp.truthy(firstArg)) {
 					prompt = string(firstArg);
 				}
 			}
@@ -54,7 +54,7 @@ function freshInterpreter() {
 			}, (err) => {
 				errorMessage("input-string failed with " + err.toString());
 			});
-		}, "input-string");
+		}, { name: "input-string" });
 
 		// (input-choice [choices] [prompt] [allow-multiple])
 		interp.importCCFunction((args, env, cc) => {
@@ -92,7 +92,8 @@ function freshInterpreter() {
 			} else {
 				errorMessage("You need to select an editor before inserting.");
 			}
-		}, "insert");
+
+		}, { name: "insert" });
 
 		// (vscode-command [command name])
 		interp.importCCFunction((args, env, cc) => {
@@ -101,12 +102,12 @@ function freshInterpreter() {
 			}, (err) => {
 				errorMessage(err.toString());
 			});
-		}, "vscode-command");
+		}, {name: "vscode-command" });
 
 		// (make-range [start] [end])
-		interp.importFunction((start, end) => {
+		interp.importFunction(null, (start, end) => {
 			return new vscode.Range(start, end);
-		}, "make-range");
+		}, { name: "make-range" });
 
 		// The rest of the API is defined in api.hiss using the module object
 		interp.importVar(vscode, "vscode");
