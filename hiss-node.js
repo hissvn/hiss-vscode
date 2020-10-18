@@ -545,6 +545,9 @@ StringTools.hex = function(n,digits) {
 };
 var Sys = function() { };
 Sys.__name__ = "Sys";
+Sys.getEnv = function(s) {
+	return process.env[s];
+};
 Sys.systemName = function() {
 	var _g = process.platform;
 	switch(_g) {
@@ -2680,12 +2683,13 @@ var hiss_CCInterp = $hx_exports["hiss"]["CCInterp"] = function(printFunction) {
 	this.importCCFunction(hiss_VariadicFunctions.append,{ name : "append"});
 	this.importFunction(this,function(a,b) {
 		return a % b;
-	},{ name : "%"});
+	},{ name : "%", argNames : ["a","b"]});
 	this.importFunction(hiss_HaxeTools,hiss_HaxeTools.readLine,{ name : "read-line", argNames : []});
 	this.importFunction(hiss_HissTools,hiss_HissTools.homeDir,{ name : "home-dir", argNames : []});
 	this.importFunction(hiss_StaticFiles,hiss_StaticFiles.getContent,{ name : "get-content", argNames : ["file"]});
 	this.importClass(hiss_wrappers_HFile,"File");
 	this.importFunction(Sys,Sys.sleep,{ name : "sleep!", argNames : ["seconds"]});
+	this.importFunction(Sys,Sys.getEnv,{ name : "get-env", argNames : ["var"]});
 	this.importCCFunction($bind(this,this.delay),{ name : "delay!", argNames : ["func","seconds"]});
 	this.importClass(hiss_wrappers_HHttp,"Http");
 	var interp12 = this;
@@ -2984,7 +2988,7 @@ hiss_CCInterp.prototype = {
 			throw haxe_Exception.thrown(hiss_HSignal.Quit);
 		},{ name : "quit!"});
 		var locals = this.emptyEnv();
-		hiss_HaxeTools.println("Hiss version " + "master-520 (target: nodejs)");
+		hiss_HaxeTools.println("Hiss version " + "master-523 (target: nodejs)");
 		hiss_HaxeTools.println("Type (help) for a list of functions, or (quit) to quit the REPL");
 		while(true) {
 			hiss_HaxeTools.print(">>> ");
@@ -5219,7 +5223,7 @@ hiss_HissTestCase.prototype = $extend(utest_Test.prototype,{
 var hiss_HissTools = $hx_exports["hiss"]["HissTools"] = function() { };
 hiss_HissTools.__name__ = "hiss.HissTools";
 hiss_HissTools.version = function() {
-	return hiss_HValue.String("master-520 (target: nodejs)");
+	return hiss_HValue.String("master-523 (target: nodejs)");
 };
 hiss_HissTools.homeDir = function() {
 	var s = Sys.systemName() == "Windows" ? "UserProfile" : "HOME";
@@ -6240,7 +6244,7 @@ hiss_wrappers_HDate.getDay = function(date) {
 	}
 	return date.instance.getDay();
 };
-hiss_wrappers_HDate.getFullYear = function(date) {
+hiss_wrappers_HDate.getYear = function(date) {
 	if(date == null) {
 		date = hiss_wrappers_HDate.now();
 	}
