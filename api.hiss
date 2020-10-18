@@ -35,6 +35,19 @@
 (defun start (object) (get-property object "start"))
 (defun end (object) (get-property object "end"))
 
+(defun then (promise on-fulfilled &optional on-rejected)
+    (call-haxe promise "then" [on-fulfilled on-rejected]))
+
+/**
+ * Synchronous interop
+ */
+(defun call-sync (object method &rest args)
+    (call/cc 
+        (lambda (cc) 
+            (then 
+                (call-haxe object method args)
+                cc))))
+
 /**
  * vscode.window
  */
@@ -44,7 +57,7 @@
     (get-property window "activeTextEditor"))
 
 (defun show-text-document (doc)
-    (call-haxe window "showTextDocument" [doc]))
+    (call-sync window "showTextDocument" doc))
 
 /**
  * vscode.workspace
@@ -108,7 +121,8 @@
     (let (path
                 (or path (input-string "Filename"))
             uri
-                (Uri:parse (if (exists path) "file:$path" "untitled:$path"))
+                (Uri:parse (print (if (exists path) "file:$path" "untitled:$path")))
             doc
                 (open-text-document uri))
+                
         (show-text-document doc)))
