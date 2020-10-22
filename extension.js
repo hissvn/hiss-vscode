@@ -64,7 +64,7 @@ function freshInterpreter() {
 			args = HT.toList(args);
 			var choices = HT.toList(args[0]);
 			var prompt = ""; if (args.length > 1) prompt = HT.toHaxeString(args[1]);
-			var allowMultiple = false; if (args.length > 2) allowMultiple = HT.truthy(args[2]);
+			var allowMultiple = false; if (args.length > 2) allowMultiple = interp.truthy(args[2]);
 
 			var choiceStrings = choices.map(HT.toPrint);
 			var dict = {};
@@ -83,7 +83,7 @@ function freshInterpreter() {
 			}, (err) => {
 				errorMessage(err.toString());
 			});
-		}, "input-choice");
+		}, {name: "input-choice"});
 
 		// (insert [expression])
 		interp.importCCFunction((args, env, cc) => {
