@@ -108,16 +108,16 @@ function freshInterpreter() {
 		}, {name: "vscode-command" });
 
 		// (make-range [start] [end])
-		interp.importFunction(null, (start, end) => {
+		interp.importFunction(vscode, (start, end) => {
 			return new vscode.Range(start, end);
 		}, { name: "make-range" });
 
 		// Node modules
 		interp.importVar(fs, "fs");
 
-		interp.importFunction(path.basename, "_base-name");
-		interp.importFunction(path.join, "path-join");
-		interp.importFunction(path.dirname, "_dir-name");
+		interp.importFunction(path, path.basename, { name: "_base-name" });
+		interp.importFunction(path, path.join, { name: "path-join" });
+		interp.importFunction(path, path.dirname, { name: "_dir-name" });
 
 		// The rest of the API is defined in api.hiss using the module object
 		interp.importVar(vscode, "vscode");
