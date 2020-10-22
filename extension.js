@@ -80,6 +80,8 @@ function freshInterpreter() {
 				} else {
 					cc(dict[result]);
 				}
+			}, (err) => {
+				errorMessage(err.toString());
 			});
 		}, "input-choice");
 
