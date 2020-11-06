@@ -92,7 +92,12 @@ function freshInterpreter() {
 			if (vscode.window.activeTextEditor) {
 				vscode.window.activeTextEditor.edit((edit) => {
 					edit.replace(vscode.window.activeTextEditor.selection, toInsert);
-					cc(hval(arg));
+				}).then((success) => {
+					if (success) {
+						cc(arg);
+					} else {
+						errorMessage("Failed to insert " + toInsert);
+					}
 				});
 			} else {
 				errorMessage("You need to select an editor before inserting.");

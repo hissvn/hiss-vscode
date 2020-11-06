@@ -18,7 +18,11 @@
 (defun dir-name (&optional file) (_dir-name (or file (file-name))))
 (defun base-name (&optional file) (_base-name (or file (file-name))))
 
-// (load) and (get-content) should always load relative to the current script path
+// Dir functions should operate on the current directory by default
+(defun read-dir (&optional dir)
+    (call-haxe fs "readdirSync" [(or dir (dir-name))]))
+
+// (load) should always load relative to the current script path
 (defmacro call-relative (func file)
     `(let (load-dir
                 (dir-name (if (bound? *current-file-name*) *current-file-name* (file-name)))
@@ -28,11 +32,7 @@
 (defvar _load load)
 (defun load (file)
     (call-relative _load file))
-(defvar _get-content get-content)
-(defun get-content (file)
-    (call-relative _get-content file))
     
-
 /**
  * Built-in commands
  */
