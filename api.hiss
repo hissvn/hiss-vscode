@@ -86,6 +86,10 @@
 (defun open-text-document (uri)
     (call-haxe workspace "openTextDocument" [uri]))
 
+(defun workspace-folder-paths ()
+    (for folder (get-property workspace "workspaceFolders")
+        (get-property (get-property folder "uri") "fsPath")))
+
 /**
  * Selection
  */
