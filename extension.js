@@ -121,7 +121,20 @@ function freshInterpreter() {
 		interp.importFunction(path, path.join, { name: "path-join" });
 		interp.importFunction(path, path.dirname, { name: "_dir-name" });
 
-		// The rest of the API is defined in api.hiss using the module object
+		// Import any npm module to your environment
+		interp.importFunction(undefined, require, { name: "require" });
+
+		// Make javascript objects
+		interp.importCCFunction((args, env, cc) => {
+			var object = {};
+			var argList = HT.unwrapList(args, interp);
+			for (var idx = 0; idx < argList.length; idx += 2) {
+				object[argList[idx]] = argList[idx+1];
+			}
+			cc(object);
+		}, { name: "object" });
+
+		// Many parts of the API can be defined in Hiss using reflection and the root module object
 		interp.importVar(vscode, "vscode");
 
 		// The rest of the API is defined in api.hiss
