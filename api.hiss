@@ -44,6 +44,23 @@
  * Node Modules
  */
 
+(defmacro require! (module)
+    `(defvar ,module (require (symbol-name ',module))))
+
+(require! child_process)
+
+(defun spawn (command &rest args)
+    (call-haxe child_process "spawn" [command args]))
+
+(defun spawn-with-options (options command &rest args)
+    (call-haxe child_process "spawn" [command args options]))
+
+(defun spawn-sync (command &rest args)
+    (call-haxe child_process "spawnSync" [command args]))
+
+(defun spawn-sync-with-options (options command &rest args)
+    (call-haxe child_process "spawnSync" [command args options]))
+
 (defun exists (filename)
     (call-haxe fs "existsSync" [filename]))
 
