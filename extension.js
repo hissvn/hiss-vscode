@@ -114,6 +114,11 @@ function freshInterpreter() {
 			return new vscode.Range(start, end);
 		}, { name: "make-range" });
 
+		// (make-selection [anchor-line] [anchor-character] [active-line] [active-character])
+		interp.importFunction(vscode, (anchorLine, anchorCharacter, activeLine, activeCharacter) => {
+			return new vscode.Selection(anchorLine, anchorCharacter, activeLine, activeCharacter);
+		}, { name: "make-selection" });
+
 		// Node modules
 		interp.importVar(fs, "fs");
 

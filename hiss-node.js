@@ -6057,6 +6057,13 @@ hiss_Stdlib.sleep_ccda = function(interp,args,env,cc) {
 hiss_Stdlib.getProperty_cc = function(interp,args,env,cc) {
 	cc(hiss_HissTools.toHValue(Reflect.getProperty(hiss_HissTools.value(hiss_HissTools.first(args),interp,true),hiss_HissTools.toHaxeString(hiss_HissTools.second(args)))));
 };
+hiss_Stdlib.setProperty_cc = function(interp,args,env,cc) {
+	var object = hiss_HissTools.value(hiss_HissTools.first(args),interp,true);
+	var propertyName = hiss_HissTools.toHaxeString(hiss_HissTools.second(args));
+	var newValueHiss = hiss_HissTools.third(args);
+	Reflect.setProperty(object,propertyName,hiss_HissTools.value(newValueHiss,interp,true));
+	cc(newValueHiss);
+};
 hiss_Stdlib.callHaxe_cc = function(interp,args,env,cc) {
 	var callOnReference = hiss_Stdlib.length_h(args) < 4 ? false : interp.truthy(hiss_Stdlib.nth_h(args,hiss_HValue.Int(3)));
 	var keepArgsWrapped = hiss_Stdlib.length_h(args) < 5 ? hiss_HValue.Nil : hiss_Stdlib.nth_h(args,hiss_HValue.Int(4));

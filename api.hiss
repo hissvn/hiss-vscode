@@ -128,6 +128,30 @@
     (get-text (selection->range (selection editor)) editor))
 
 /**
+ * Cursor movement functions
+ */
+
+(defun cursor-to-start! ()
+    "Move the cursor to the start of the current document"
+    (set-property (active-editor) "selection" (make-selection 0 0 0 0)))
+
+(defun cursor-to-end! ()
+    "Move the cursor to the end of the current document"
+    (let (line
+                (- (line-count) 1)
+            char
+                (length (get-property (line-at line) "text")))
+        (set-property (active-editor) "selection" (make-selection line char line char))))
+
+(defun select-all! ()
+    "Select all of the current document"
+    (let (line
+                (- (line-count) 1)
+            char
+                (length (get-property (line-at line) "text")))
+        (set-property (active-editor) "selection" (make-selection 0 0 line char))))
+
+/**
  * TextDocument
  */
 
@@ -139,6 +163,9 @@
 
 (defun line-count (&optional doc)
     (get-property (or doc (document)) "lineCount"))
+
+(defun line-at (line-number &optional doc)
+    (call-haxe (or doc (document)) "lineAt" [line-number]))
 
 // Argument order is flipped from a typical method structure because I imagine
 // querying the active doc will be the most typical
